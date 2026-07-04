@@ -3,173 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C4ISR - Teatro de Operaciones Venezuela</title>
+    <title>Tactical Command: VZLA Engine</title>
     <style>
-        :root {
-            --bg-main: #020617;
-            --bg-panel: #0f172a;
-            --border-color: #1e293b;
-            --text-primary: #4ade80;
-            --text-secondary: #94a3b8;
-            --usa: #3b82f6;
-            --fanb: #ef4444;
-            --leones: #f59e0b;
-        }
-
-        body {
-            margin: 0;
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #sidebar {
-            width: 400px;
-            background-color: var(--bg-panel);
-            border-right: 2px solid var(--border-color);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            box-sizing: border-box;
-            z-index: 10;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
-        }
-
-        h3, h4 { margin: 0; color: #f8fafc; text-transform: uppercase; }
-        
-        textarea {
-            width: 100%;
-            height: 100px;
-            background-color: #020617;
-            border: 1px solid #334155;
-            color: #f8fafc;
-            padding: 10px;
-            font-family: inherit;
-            resize: none;
-            border-radius: 4px;
-        }
-        textarea:focus { outline: none; border-color: var(--text-primary); }
-
-        button {
-            background-color: #166534;
-            color: var(--text-primary);
-            border: 1px solid var(--text-primary);
-            padding: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            font-family: inherit;
-            text-transform: uppercase;
-            border-radius: 4px;
-            transition: 0.3s;
-        }
-        button:hover {
-            background-color: var(--text-primary);
-            color: #020617;
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
-        }
-
-        .log {
-            flex-grow: 1;
-            border: 1px solid #334155;
-            background-color: #020617;
-            padding: 10px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            line-height: 1.4;
-        }
-
-        .log-usa { color: var(--usa); }
-        .log-fanb { color: var(--fanb); }
-        .log-leones { color: var(--leones); font-weight: bold; }
-        .log-sys { color: #a3e635; }
-
-        /* Contenedor del Mapa */
-        #map-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #020617;
-            position: relative;
-            padding: 10px;
-        }
-
-        canvas {
-            background-color: #020617;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
-            border: 1px solid #1e293b;
-        }
-
-        /* Leyenda Superpuesta */
-        #leyenda {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid #334155;
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: #cbd5e1;
-            pointer-events: none;
-        }
-        .leyenda-item { display: flex; align-items: center; margin-bottom: 5px; }
-        .color-box { width: 12px; height: 12px; margin-right: 8px; border-radius: 2px; }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #334155; }
+        body { margin: 0; background: #020617; color: #4ade80; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #map-canvas { display: block; cursor: crosshair; }
+        #ui-overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        .info { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #4ade80; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h3>⚡ C4ISR COMANDO TÁCTICO</h3>
-        <p style="font-size: 0.75rem; color: #64748b; margin-top:-10px;">Ingrese comandos especificando FACCIÓN, ACCIÓN y SECTOR.</p>
-        <textarea id="scenarioInput" placeholder="Ej: Ataque de drones de EEUU en Maracaibo. Despliegue de FANB en Caracas. Irregulares Leones sabotean Apure..."></textarea>
-        <button onclick="procesarEntorno()">Ejecutar Simulación</button>
+<div id="ui-overlay">
+    <div class="info">COMANDO: Arrastra unidades (🚁, 🤖, 🦁, 🪖) a los puntos de control.</div>
+</div>
+<canvas id="map-canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('map-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let units = [
+        { x: 100, y: 100, type: '🚁', faction: 'usa' },
+        { x: 100, y: 200, type: '🦁', faction: 'leones' },
+        { x: 100, y: 300, type: '🪖', faction: 'fanb' }
+    ];
+
+    let dragUnit = null;
+
+    canvas.addEventListener('pointerdown', (e) => {
+        units.forEach(u => {
+            if (Math.hypot(u.x - e.clientX, u.y - e.clientY) < 30) dragUnit = u;
+        });
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (dragUnit) {
+            dragUnit.x = e.clientX;
+            dragUnit.y = e.clientY;
+            render();
+        }
+    });
+
+    canvas.addEventListener('pointerup', () => dragUnit = null);
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        <h4>REGISTRO SATELITAL</h4>
-        <div id="logConsole" class="log">> Inicializando enlace satelital...<br>> Mapeo topográfico VZLA cargado.</div>
-    </div>
-
-    <div id="map-container">
-        <canvas id="venezuelaMap" width="900" height="700"></canvas>
+        // Dibujar mapa base simple
+        ctx.strokeStyle = '#1e293b';
+        for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
         
-        <div id="leyenda">
-            <h4 style="margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px;">LEYENDA TÁCTICA</h4>
-            <div class="leyenda-item"><div class="color-box" style="background:#0f172a;"></div> Mar Caribe / Espacio Aéreo</div>
-            <div class="leyenda-item"><div class="color-box" style="background:#064e3b;"></div> Territorio / Selva</div>
-            <div class="leyenda-item"><div class="color-box" style="background:#0284c7;"></div> Río Orinoco / Hidrografía</div>
-            <div class="leyenda-item"><div class="color-box" style="background:#475569;"></div> Relieve Andino</div>
-            <br>
-            <div class="leyenda-item"><div class="color-box" style="background:var(--usa);"></div> 🇺🇸 Fuerzas EEUU</div>
-            <div class="leyenda-item"><div class="color-box" style="background:var(--fanb);"></div> 🇻🇪 FANB / Gobierno</div>
-            <div class="leyenda-item"><div class="color-box" style="background:var(--leones);"></div> 🦁 Irregulares Leones</div>
-            <br>
-            <div class="leyenda-item">🟩 Barra Verde: HP (Infraestructura)</div>
-            <div class="leyenda-item">🟦 Barra Azul: Moral (Apoyo Civil)</div>
-        </div>
-    </div>
+        // Dibujar unidades
+        units.forEach(u => {
+            ctx.fillStyle = u.faction === 'usa' ? '#3b82f6' : (u.faction === 'fanb' ? '#ef4444' : '#f59e0b');
+            ctx.beginPath();
+            ctx.arc(u.x, u.y, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(u.type, u.x, u.y + 7);
+        });
+    }
 
-    <script>
-        const canvas = document.getElementById('venezuelaMap');
-        const ctx = canvas.getContext('2d');
-
-        // Coordenadas topográficas ajustadas
-        const sectores = {
-            "caracas": { x: 500, y: 180, label: "CCS", tipo: "Capital Política", moral: 80, hp: 100, bando: "🇻🇪" },
-            "maracaibo": { x: 220, y: 150, label: "MAR", tipo: "Cuenca Petrolera", moral: 60, hp: 100, bando: "🇻🇪" },
-            "san cristobal": { x: 180, y: 320, label: "SCR", tipo: "Frontera Andina", moral: 45, hp: 100, bando: "🇻🇪" },
-            "apure": { x: 380, y: 380, label: "APU", tipo: "Llanos Subregionales", moral: 50, hp: 100, bando: "🇻🇪" },
-            "ciudad bolivar": { x: 650, y: 350, label: "CBL", tipo: "Eje Orinoco", moral: 75, hp: 100, bando: "🇻🇪" },
-            "paraguana": { x: 320, y: 80, label: "PAR", tipo: "Refinería Costa", moral: 65, hp: 100, bando: "🇻🇪" },
-            "guri": { x
+    render();
+</script>
+</body>
+</html>
