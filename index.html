@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Táctico - VZLA</title>
+    <title>C4ISR - Teatro de Operaciones Venezuela</title>
     <style>
         :root {
-            --bg-main: #05070a;
+            --bg-main: #020617;
             --bg-panel: #0f172a;
             --border-color: #1e293b;
             --text-primary: #4ade80;
             --text-secondary: #94a3b8;
+            --usa: #3b82f6;
+            --fanb: #ef4444;
+            --leones: #f59e0b;
         }
 
         body {
@@ -21,12 +24,10 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
-            flex-direction: row;
         }
 
-        /* Panel Lateral (Comando) */
         #sidebar {
-            width: 380px;
+            width: 400px;
             background-color: var(--bg-panel);
             border-right: 2px solid var(--border-color);
             padding: 20px;
@@ -35,32 +36,23 @@
             gap: 15px;
             box-sizing: border-box;
             z-index: 10;
-            flex-shrink: 0;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
         }
 
-        h3, h4 {
-            margin: 0;
-            color: #f8fafc;
-            text-shadow: 0 0 5px rgba(248, 250, 252, 0.3);
-        }
-
+        h3, h4 { margin: 0; color: #f8fafc; text-transform: uppercase; }
+        
         textarea {
             width: 100%;
-            height: 120px;
+            height: 100px;
             background-color: #020617;
             border: 1px solid #334155;
             color: #f8fafc;
-            padding: 12px;
+            padding: 10px;
             font-family: inherit;
             resize: none;
-            box-sizing: border-box;
             border-radius: 4px;
         }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--text-primary);
-        }
+        textarea:focus { outline: none; border-color: var(--text-primary); }
 
         button {
             background-color: #166534;
@@ -70,40 +62,30 @@
             cursor: pointer;
             font-weight: bold;
             font-family: inherit;
-            transition: all 0.3s ease;
             text-transform: uppercase;
             border-radius: 4px;
+            transition: 0.3s;
         }
-
         button:hover {
             background-color: var(--text-primary);
             color: #020617;
             box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
         }
 
-        /* Consola de Log */
         .log {
             flex-grow: 1;
             border: 1px solid #334155;
             background-color: #020617;
-            padding: 12px;
+            padding: 10px;
             overflow-y: auto;
             font-size: 0.85rem;
             color: var(--text-secondary);
-            line-height: 1.5;
-            border-radius: 4px;
+            line-height: 1.4;
         }
 
-        /* Scrollbar personalizada */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #020617; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Colores de Facciones */
-        .log-usa { color: #60a5fa; }
-        .log-fanb { color: #f87171; }
-        .log-leones { color: #fbbf24; font-weight: bold; }
+        .log-usa { color: var(--usa); }
+        .log-fanb { color: var(--fanb); }
+        .log-leones { color: var(--leones); font-weight: bold; }
         .log-sys { color: #a3e635; }
 
         /* Contenedor del Mapa */
@@ -114,192 +96,80 @@
             align-items: center;
             background-color: #020617;
             position: relative;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow: hidden;
+            padding: 10px;
         }
 
         canvas {
-            border: 2px solid var(--border-color);
-            background-color: #0b1120;
-            box-shadow: 0 0 40px rgba(74, 222, 128, 0.05);
+            background-color: #020617;
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
             border-radius: 8px;
+            border: 1px solid #1e293b;
         }
 
-        /* Responsive Design: Adaptación para Móviles */
-        @media (max-width: 850px) {
-            body {
-                flex-direction: column;
-                overflow-y: auto;
-            }
-            #sidebar {
-                width: 100%;
-                height: 50vh;
-                border-right: none;
-                border-bottom: 2px solid var(--border-color);
-            }
-            #map-container {
-                height: 50vh;
-                padding: 10px;
-            }
+        /* Leyenda Superpuesta */
+        #leyenda {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            pointer-events: none;
         }
+        .leyenda-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .color-box { width: 12px; height: 12px; margin-right: 8px; border-radius: 2px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <h3>COMANDO ESTRATÉGICO</h3>
-        <textarea id="scenarioInput" placeholder="Ej: Ataque de EEUU en Maracaibo. El gobierno defiende Caracas. Irregulares Leones avanzan en Apure..."></textarea>
+        <h3>⚡ C4ISR COMANDO TÁCTICO</h3>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top:-10px;">Ingrese comandos especificando FACCIÓN, ACCIÓN y SECTOR.</p>
+        <textarea id="scenarioInput" placeholder="Ej: Ataque de drones de EEUU en Maracaibo. Despliegue de FANB en Caracas. Irregulares Leones sabotean Apure..."></textarea>
         <button onclick="procesarEntorno()">Ejecutar Simulación</button>
         
-        <h4>REGISTRO DE COMBATE</h4>
-        <div id="logConsole" class="log">> Sistema C4ISR inicializado...<br>> Satélites en posición. Monitoreando 3 facciones.</div>
+        <h4>REGISTRO SATELITAL</h4>
+        <div id="logConsole" class="log">> Inicializando enlace satelital...<br>> Mapeo topográfico VZLA cargado.</div>
     </div>
 
     <div id="map-container">
-        <!-- El tamaño base es 800x650, el CSS se encarga de escalarlo -->
-        <canvas id="venezuelaMap" width="800" height="650"></canvas>
+        <canvas id="venezuelaMap" width="900" height="700"></canvas>
+        
+        <div id="leyenda">
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px;">LEYENDA TÁCTICA</h4>
+            <div class="leyenda-item"><div class="color-box" style="background:#0f172a;"></div> Mar Caribe / Espacio Aéreo</div>
+            <div class="leyenda-item"><div class="color-box" style="background:#064e3b;"></div> Territorio / Selva</div>
+            <div class="leyenda-item"><div class="color-box" style="background:#0284c7;"></div> Río Orinoco / Hidrografía</div>
+            <div class="leyenda-item"><div class="color-box" style="background:#475569;"></div> Relieve Andino</div>
+            <br>
+            <div class="leyenda-item"><div class="color-box" style="background:var(--usa);"></div> 🇺🇸 Fuerzas EEUU</div>
+            <div class="leyenda-item"><div class="color-box" style="background:var(--fanb);"></div> 🇻🇪 FANB / Gobierno</div>
+            <div class="leyenda-item"><div class="color-box" style="background:var(--leones);"></div> 🦁 Irregulares Leones</div>
+            <br>
+            <div class="leyenda-item">🟩 Barra Verde: HP (Infraestructura)</div>
+            <div class="leyenda-item">🟦 Barra Azul: Moral (Apoyo Civil)</div>
+        </div>
     </div>
 
     <script>
         const canvas = document.getElementById('venezuelaMap');
         const ctx = canvas.getContext('2d');
 
-        // Base de datos de sectores estratégicos
+        // Coordenadas topográficas ajustadas
         const sectores = {
-            "caracas": { x: 450, y: 150, label: "CCS", tipo: "Centro Político", moral: 80, hp: 100, bando: "🇻🇪" },
-            "maracaibo": { x: 180, y: 130, label: "MAR", tipo: "Reserva Petrolera", moral: 60, hp: 100, bando: "🇻🇪" },
-            "san cristobal": { x: 130, y: 280, label: "SCR", tipo: "Corredor Fronterizo", moral: 45, hp: 100, bando: "🇻🇪" },
-            "apure": { x: 320, y: 320, label: "APU", tipo: "Llanos/Guerrilla", moral: 50, hp: 100, bando: "🇻🇪" },
-            "ciudad bolivar": { x: 580, y: 290, label: "CBL", tipo: "Cruce Río Orinoco", moral: 75, hp: 100, bando: "🇻🇪" },
-            "paraguana": { x: 280, y: 70, label: "PAR", tipo: "Complejo Refinador", moral: 65, hp: 100, bando: "🇻🇪" },
-            "guri": { x: 620, y: 360, label: "GURI", tipo: "Infraestructura (Energía)", moral: 85, hp: 100, bando: "🇻🇪" }
-        };
-
-        function dibujarBarras(x, y, moral, hp) {
-            // Barra de HP (Daño Físico)
-            ctx.fillStyle = '#334155'; ctx.fillRect(x - 20, y + 15, 40, 4);
-            ctx.fillStyle = hp > 50 ? '#4ade80' : '#f87171';
-            ctx.fillRect(x - 20, y + 15, (hp / 100) * 40, 4);
-            
-            // Barra de Moral (Apoyo Civil)
-            ctx.fillStyle = '#334155'; ctx.fillRect(x - 20, y + 21, 40, 4);
-            ctx.fillStyle = moral > 50 ? '#60a5fa' : '#fb923c';
-            ctx.fillRect(x - 20, y + 21, (moral / 100) * 40, 4);
-        }
-
-        function redibujarBase() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.strokeStyle = 'rgba(30, 41, 59, 0.5)'; ctx.lineWidth = 1;
-            for (let x = 0; x <= canvas.width; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-            for (let y = 0; y <= canvas.height; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-
-            for (const key in sectores) {
-                const sec = sectores[key];
-                
-                ctx.beginPath(); ctx.arc(sec.x, sec.y, 6, 0, 2 * Math.PI);
-                ctx.fillStyle = '#475569'; ctx.fill();
-                
-                ctx.fillStyle = 'rgba(148, 163, 184, 0.9)'; ctx.font = '12px Courier New';
-                ctx.fillText(sec.bando + " " + sec.label, sec.x - 20, sec.y - 15);
-                ctx.font = '9px Arial';
-                ctx.fillText(sec.tipo, sec.x - 30, sec.y - 25);
-                
-                dibujarBarras(sec.x, sec.y, sec.moral, sec.hp);
-            }
-        }
-
-        function dibujarUnidad(x, y, bandoStr, iconoTech) {
-            ctx.beginPath(); ctx.arc(x + 20, y - 10, 14, 0, 2 * Math.PI);
-            
-            if (bandoStr === 'usa') ctx.fillStyle = 'rgba(37, 99, 235, 0.8)';
-            else if (bandoStr === 'fanb') ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
-            else if (bandoStr === 'leones') ctx.fillStyle = 'rgba(217, 119, 6, 0.9)';
-            else ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
-            
-            ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
-            
-            ctx.fillStyle = '#fff'; ctx.font = '14px Arial';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(iconoTech, x + 20, y - 10);
-            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; 
-        }
-
-        function procesarEntorno() {
-            const input = document.getElementById('scenarioInput').value.toLowerCase();
-            const log = document.getElementById('logConsole');
-            redibujarBase();
-
-            log.innerHTML += "<br><span class='log-sys'>> Escaneando movimientos de vectores...</span>";
-
-            let interaccion = false;
-
-            for (const ciudad in sectores) {
-                if (input.includes(ciudad)) {
-                    interaccion = true;
-                    const sec = sectores[ciudad];
-                    
-                    const esUSA = input.includes('eeuu') || input.includes('imperio') || input.includes('usa');
-                    const esFANB = input.includes('fanb') || input.includes('ejercito') || input.includes('gobierno') || input.includes('venezuela');
-                    const esLeones = input.includes('irregular') || input.includes('leones') || input.includes('insurgencia');
-                    
-                    const techDron = input.includes('dron') || input.includes('drones');
-                    const techRobot = input.includes('robot') || input.includes('mecha');
-                    const ataque = input.includes('ataque') || input.includes('bombardeo') || input.includes('sabotaje') || input.includes('emboscada');
-
-                    const bandoActivo = esUSA ? 'usa' : (esFANB ? 'fanb' : (esLeones ? 'leones' : 'indefinido'));
-                    const icono = techDron ? '🚁' : (techRobot ? '🤖' : (bandoActivo === 'leones' ? '🦁' : '🪖'));
-                    const eta = Math.floor(Math.random() * 15) + 5; 
-
-                    if (bandoActivo === 'usa') {
-                        dibujarUnidad(sec.x, sec.y, 'usa', icono);
-                        log.innerHTML += `<br><span class='log-usa'>> [🇺🇸 IMPERIO] Fuerzas operativas en ${sec.label}. ETA: ${eta} min.</span>`;
-                        if (ataque) {
-                            sec.hp -= 25; sec.moral -= 10; 
-                            log.innerHTML += `<br><span class='log-sys'>> [DAÑO] Bombardeo convencional. HP al ${sec.hp}%. Moral cae a ${sec.moral}%.</span>`;
-                            log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 DEFENSA] Baterías antiaéreas activas. Fuerzas regulares aseguran el perímetro.</span>`;
-                        }
-                    } else if (bandoActivo === 'fanb') {
-                        dibujarUnidad(sec.x, sec.y, 'fanb', icono);
-                        log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 GOBIERNO] Despliegue en ${sec.label}. ETA: ${eta} min.</span>`;
-                        sec.moral += 5; 
-                        if (ataque) {
-                            log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 OFENSIVA] Operación de barrido iniciada en el sector.</span>`;
-                        }
-                    } else if (bandoActivo === 'leones') {
-                        dibujarUnidad(sec.x, sec.y, 'leones', icono);
-                        log.innerHTML += `<br><span class='log-leones'>> [🦁 LEONES] Célula irregular en ${sec.label}. ETA: Desconocido.</span>`;
-                        if (ataque) {
-                            sec.hp -= 10; sec.moral -= 30; 
-                            log.innerHTML += `<br><span class='log-leones'>> [🦁 SABOTAJE] Infraestructura comprometida al ${sec.hp}%. Pánico civil, moral cae a ${sec.moral}%.</span>`;
-                        }
-                    }
-                    
-                    if (sec.hp <= 0 || sec.moral <= 0) {
-                        sec.hp = Math.max(0, sec.hp);
-                        sec.moral = Math.max(0, sec.moral);
-                        
-                        if (bandoActivo === 'usa') sec.bando = "🇺🇸";
-                        else if (bandoActivo === 'leones') sec.bando = "🦁";
-                        else if (bandoActivo === 'fanb') sec.bando = "🇻🇪";
-
-                        log.innerHTML += `<br><span class='log-sys'>> [⚠️ COLAPSO] El sector ${sec.label} ha caído bajo el control de la facción atacante.</span>`;
-                    }
-                }
-            }
-
-            if (!interaccion) log.innerHTML += "<br><span class='log-sys'>> Sin órdenes procesables. Identifique Facción, Acción y Sector.</span>";
-            
-            redibujarBase();
-            log.scrollTop = log.scrollHeight;
-        }
-
-        // Renderizado inicial al cargar la página
-        window.onload = redibujarBase;
-    </script>
-</body>
-</html>
+            "caracas": { x: 500, y: 180, label: "CCS", tipo: "Capital Política", moral: 80, hp: 100, bando: "🇻🇪" },
+            "maracaibo": { x: 220, y: 150, label: "MAR", tipo: "Cuenca Petrolera", moral: 60, hp: 100, bando: "🇻🇪" },
+            "san cristobal": { x: 180, y: 320, label: "SCR", tipo: "Frontera Andina", moral: 45, hp: 100, bando: "🇻🇪" },
+            "apure": { x: 380, y: 380, label: "APU", tipo: "Llanos Subregionales", moral: 50, hp: 100, bando: "🇻🇪" },
+            "ciudad bolivar": { x: 650, y: 350, label: "CBL", tipo: "Eje Orinoco", moral: 75, hp: 100, bando: "🇻🇪" },
+            "paraguana": { x: 320, y: 80, label: "PAR", tipo: "Refinería Costa", moral: 65, hp: 100, bando: "🇻🇪" },
+            "guri": { x
