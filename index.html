@@ -2,71 +2,67 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>WAR SIMULATOR - VZLA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador Táctico</title>
     <style>
-        body { margin: 0; background: #05070a; color: #4ade80; font-family: monospace; overflow: hidden; touch-action: none; }
-        #game-canvas { display: block; }
-        .controls { position: absolute; bottom: 20px; left: 20px; display: flex; gap: 10px; }
-        button { background: #166534; color: #fff; border: 1px solid #4ade80; padding: 10px; cursor: pointer; }
+        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+        #canvas { display: block; background: #080b11; cursor: crosshair; }
+        .ui { position: absolute; top: 10px; left: 10px; z-index: 100; }
+        button { background: #222; color: #0f0; border: 1px solid #0f0; padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="controls">
-    <button onclick="entrenar('🚁')">Entrenar Dron</button>
-    <button onclick="entrenar('🦁')">Entrenar León</button>
-    <button onclick="entrenar('🤖')">Entrenar Robot</button>
+<div class="ui">
+    <button onclick="addUnit('🚁')">Dron</button>
+    <button onclick="addUnit('🦁')">León</button>
 </div>
-
-<canvas id="game-canvas"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-    const canvas = document.getElementById('game-canvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let units = [{x: 100, y: 100, type: '🚁'}];
+    let selected = null;
 
-    let unidades = [{ x: 100, y: 100, type: '🚁', faction: 'player' }];
-    let enemigas = [{ x: 700, y: 500, type: '🪖', faction: 'bot' }];
-    let dragUnit = null;
-
-    function entrenar(tipo) {
-        unidades.push({ x: 50, y: 50, type: tipo, faction: 'player' });
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
+    window.onresize = resize;
+    resize();
 
-    // IA del BOT: Reacciona moviéndose hacia las unidades del jugador
-    setInterval(() => {
-        enemigas.forEach(e => {
-            let target = unidades[0];
-            if(target) {
-                e.x += (target.x - e.x) * 0.01;
-                e.y += (target.y - e.y) * 0.01;
-            }
-        });
-        draw();
-    }, 50);
+    function addUnit(type) { units.push({x: 50, y: 50, type: type}); }
 
-    canvas.addEventListener('pointerdown', e => {
-        unidades.forEach(u => { if(Math.hypot(u.x - e.clientX, u.y - e.clientY) < 30) dragUnit = u; });
+    canvas.addEventListener('mousedown', e => {
+        selected = units.find(u => Math.hypot(u.x - e.clientX, u.y - e.clientY) < 40);
     });
 
-    canvas.addEventListener('pointermove', e => {
-        if(dragUnit) { dragUnit.x = e.clientX; dragUnit.y = e.clientY; }
+    window.addEventListener('mousemove', e => {
+        if (selected) {
+            selected.x = e.clientX;
+            selected.y = e.clientY;
+        }
     });
 
-    canvas.addEventListener('pointerup', () => dragUnit = null);
+    window.addEventListener('mouseup', () => selected = null);
 
-    function draw() {
+    function loop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Dibujar Zonas (Caracas, Guri...)
-        ctx.strokeStyle = '#1e293b';
-        ctx.strokeRect(400, 200, 100, 100); // Zona CCS
         
-        [...unidades, ...enemigas].forEach(u => {
-            ctx.fillStyle = u.faction === 'player' ? '#3b82f6' : '#ef4444';
-            ctx.beginPath(); ctx.arc(u.x, u.y, 20, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'white'; ctx.fillText(u.type, u.x-5, u.y+5);
+        // Dibujar zonas
+        ctx.strokeStyle = '#333';
+        ctx.strokeRect(canvas.width/2 - 50, canvas.height/2 - 50, 100, 100);
+        
+        // Dibujar unidades
+        units.forEach(u => {
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px Arial';
+            ctx.fillText(u.type, u.x, u.y);
         });
+        requestAnimationFrame(loop);
     }
+    loop();
 </script>
 </body>
 </html>
