@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Táctico - Simulación Venezuela</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0f19;
+            color: #38ef7d;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 320px;
+            background-color: #111625;
+            border-right: 2px solid #1f293d;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+        #map-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #05070c;
+        }
+        canvas {
+            border: 2px solid #1f293d;
+            background-color: #080b11;
+            box-shadow: 0 0 30px rgba(56, 239, 125, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 140px;
+            background-color: #070a12;
+            border: 1px solid #1f293d;
+            color: #ffffff;
+            padding: 10px;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1b4d3e;
+            color: #38ef7d;
+            border: 1px solid #38ef7d;
+            padding: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: #38ef7d;
+            color: #0b0f19;
+            box-shadow: 0 0 10px rgba(56, 239, 125, 0.5);
+        }
+        .log {
+            flex-grow: 1;
+            border: 1px solid #1f293d;
+            background-color: #070a12;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h3>OPeraciones VENEZUELA</h3>
+        <textarea id="scenarioInput" placeholder="Ej: Desplegar Aliado en Caracas. Hostiles detectados en Apure..."></textarea>
+        <button onclick="procesarEntorno()">Ejecutar Simulación</button>
+        
+        <h4>LOG DE OPERACIONES</h4>
+        <div id="logConsole" class="log">> Sistema táctico en línea...</div>
+    </div>
+
+    <div id="map-container">
+        <canvas id="venezuelaMap" width="700" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('venezuelaMap');
+        const ctx = canvas.getContext('2d');
+
+        // Coordenadas fijas para simular puntos estratégicos reales en el lienzo
+        const puntosEstrategicos = {
+            "caracas": { x: 380, y: 120, label: "CCS (Central)" },
+            "maracaibo": { x: 120, y: 110, label: "MAR (Zuliana)" },
+            "san cristobal": { x: 80, y: 240, label: "SCR (Andina)" },
+            "apure": { x: 260, y: 280, label: "APU (Llanos)" },
+            "ciudad bolivar": { x: 520, y: 260, label: "CBL (Guayana)" },
+            "puerto la cruz": { x: 480, y: 130, label: "PLC (Oriental)" },
+            "guri": { x: 540, y: 310, label: "GURI (Energía)" }
+        };
+
+        function redibujarBase() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. Rejilla de coordenadas militares (UTM simulada)
+            ctx.strokeStyle = 'rgba(31, 41, 61, 0.4)';
+            ctx.lineWidth = 1;
+            const paso = 50;
+            for (let x = 0; x <= canvas.width; x += paso) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += paso) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            // 2. Dibujar contornos referenciales de los ejes/fronteras
+            ctx.fillStyle = "rgba(56, 239, 125, 0.05)";
+            ctx.fillRect(50, 50, 600, 500); 
+
+            // 3. Pintar los puntos estratégicos de control en el mapa
+            for (let ciudad in puntosEstrategicos) {
+                const pt = puntosEstrategicos[ciudad];
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#4a5568';
+                ctx.fill();
+                
+                ctx.fillStyle = 'rgba(160, 174, 192, 0.7)';
+                ctx.font = '10px Courier New';
+                ctx.fillText(pt.label, pt.x + 8, pt.y + 4);
+            }
+        }
+
+        function marcarUnidad(ciudad, codigo, esEnemigo) {
+            if (!puntosEstrategicos[ciudad]) return;
+            const target = puntosEstrategicos[ciudad];
+
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = esEnemigo ? '#e53e3e' : '#3182ce'; // Rojo enemigo, Azul aliado
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Texto identificador de unidad
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(codigo, target.x, target.y);
+        }
+
+        function procesarEntorno() {
+            const input = document.getElementById('scenarioInput').value.toLowerCase();
+            const log = document.getElementById('logConsole');
+            
+            // Limpiar y resetear mapa base
+            redibujarBase();
+
+            log.innerHTML += "<br><span style='color:#a0aec0'>> Procesando reporte de situación...</span>";
+
+            // Analizador de texto interactivo para posicionar los vectores
+            let detectado = false;
+            for (let ciudad in puntosEstrategicos) {
+                if (input.includes(ciudad)) {
+                    detectado = true;
+                    if (input.includes('hostil') || input.includes('enemigo') || input.includes('alerta')) {
+                        marcarUnidad(ciudad, 'X', true);
+                        log.innerHTML += `<br><span style='color:#e53e3e'>> [ALERTA] Fuerza hostil desplegada en sector ${ciudad.toUpperCase()}.</span>`;
+                    } else {
+                        marcarUnidad(ciudad, 'A1', false);
+                        log.innerHTML += `<br><span style='color:#3182ce'>> [LOG] Despliegue aliado confirmado en sector ${ciudad.toUpperCase()}.</span>`;
+                    }
+                }
+            }
+
+            if (!detectado) {
+                log.innerHTML += "<br><span style='color:#ecc94b'>> [WARN] Reporte sin coordenadas reconocidas. Intente con: Caracas, Maracaibo, Apure, Guri o Ciudad Bolivar.</span>";
+            }
+            
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Ejecutar mapa base inicial
+        redibujarBase();
+    </script>
+</body>
+</html>
