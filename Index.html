@@ -3,28 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Táctico Avanzado - Teatro de Operaciones VZLA</title>
+    <title>Simulador Táctico - VZLA</title>
     <style>
+        :root {
+            --bg-main: #05070a;
+            --bg-panel: #0f172a;
+            --border-color: #1e293b;
+            --text-primary: #4ade80;
+            --text-secondary: #94a3b8;
+        }
+
         body {
             margin: 0;
-            background-color: #05070a;
-            color: #4ade80;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             height: 100vh;
             overflow: hidden;
+            flex-direction: row;
         }
+
+        /* Panel Lateral (Comando) */
         #sidebar {
             width: 380px;
-            background-color: #0f172a;
-            border-right: 2px solid #1e293b;
+            background-color: var(--bg-panel);
+            border-right: 2px solid var(--border-color);
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 15px;
             box-sizing: border-box;
             z-index: 10;
+            flex-shrink: 0;
         }
+
+        h3, h4 {
+            margin: 0;
+            color: #f8fafc;
+            text-shadow: 0 0 5px rgba(248, 250, 252, 0.3);
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background-color: #020617;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 12px;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--text-primary);
+        }
+
+        button {
+            background-color: #166534;
+            color: var(--text-primary);
+            border: 1px solid var(--text-primary);
+            padding: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: var(--text-primary);
+            color: #020617;
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+        }
+
+        /* Consola de Log */
+        .log {
+            flex-grow: 1;
+            border: 1px solid #334155;
+            background-color: #020617;
+            padding: 12px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            border-radius: 4px;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Colores de Facciones */
+        .log-usa { color: #60a5fa; }
+        .log-fanb { color: #f87171; }
+        .log-leones { color: #fbbf24; font-weight: bold; }
+        .log-sys { color: #a3e635; }
+
+        /* Contenedor del Mapa */
         #map-container {
             flex-grow: 1;
             display: flex;
@@ -32,53 +114,38 @@
             align-items: center;
             background-color: #020617;
             position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
         }
+
         canvas {
-            border: 2px solid #1e293b;
+            border: 2px solid var(--border-color);
             background-color: #0b1120;
             box-shadow: 0 0 40px rgba(74, 222, 128, 0.05);
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
         }
-        textarea {
-            width: 100%;
-            height: 100px;
-            background-color: #020617;
-            border: 1px solid #334155;
-            color: #f8fafc;
-            padding: 10px;
-            font-family: inherit;
-            resize: none;
-            box-sizing: border-box;
+
+        /* Responsive Design: Adaptación para Móviles */
+        @media (max-width: 850px) {
+            body {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            #sidebar {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 2px solid var(--border-color);
+            }
+            #map-container {
+                height: 50vh;
+                padding: 10px;
+            }
         }
-        button {
-            background-color: #166534;
-            color: #4ade80;
-            border: 1px solid #4ade80;
-            padding: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            font-family: inherit;
-            transition: all 0.3s;
-            text-transform: uppercase;
-        }
-        button:hover {
-            background-color: #4ade80;
-            color: #020617;
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
-        }
-        .log {
-            flex-grow: 1;
-            border: 1px solid #334155;
-            background-color: #020617;
-            padding: 10px;
-            overflow-y: auto;
-            font-size: 0.8rem;
-            color: #94a3b8;
-            line-height: 1.4;
-        }
-        .log-usa { color: #60a5fa; } /* Azul */
-        .log-fanb { color: #f87171; } /* Rojo */
-        .log-leones { color: #fbbf24; font-weight: bold; } /* Dorado/Oro para Irregulares */
-        .log-sys { color: #a3e635; }
     </style>
 </head>
 <body>
@@ -93,6 +160,7 @@
     </div>
 
     <div id="map-container">
+        <!-- El tamaño base es 800x650, el CSS se encarga de escalarlo -->
         <canvas id="venezuelaMap" width="800" height="650"></canvas>
     </div>
 
@@ -101,7 +169,7 @@
         const ctx = canvas.getContext('2d');
 
         // Base de datos de sectores estratégicos
-        let sectores = {
+        const sectores = {
             "caracas": { x: 450, y: 150, label: "CCS", tipo: "Centro Político", moral: 80, hp: 100, bando: "🇻🇪" },
             "maracaibo": { x: 180, y: 130, label: "MAR", tipo: "Reserva Petrolera", moral: 60, hp: 100, bando: "🇻🇪" },
             "san cristobal": { x: 130, y: 280, label: "SCR", tipo: "Corredor Fronterizo", moral: 45, hp: 100, bando: "🇻🇪" },
@@ -130,7 +198,7 @@
             for (let x = 0; x <= canvas.width; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
             for (let y = 0; y <= canvas.height; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
-            for (let key in sectores) {
+            for (const key in sectores) {
                 const sec = sectores[key];
                 
                 ctx.beginPath(); ctx.arc(sec.x, sec.y, 6, 0, 2 * Math.PI);
@@ -148,10 +216,9 @@
         function dibujarUnidad(x, y, bandoStr, iconoTech) {
             ctx.beginPath(); ctx.arc(x + 20, y - 10, 14, 0, 2 * Math.PI);
             
-            // Asignación de colores tácticos por facción
-            if (bandoStr === 'usa') ctx.fillStyle = 'rgba(37, 99, 235, 0.8)'; // Azul
-            else if (bandoStr === 'fanb') ctx.fillStyle = 'rgba(220, 38, 38, 0.8)'; // Rojo
-            else if (bandoStr === 'leones') ctx.fillStyle = 'rgba(217, 119, 6, 0.9)'; // Dorado Intenso
+            if (bandoStr === 'usa') ctx.fillStyle = 'rgba(37, 99, 235, 0.8)';
+            else if (bandoStr === 'fanb') ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
+            else if (bandoStr === 'leones') ctx.fillStyle = 'rgba(217, 119, 6, 0.9)';
             else ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
             
             ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
@@ -171,66 +238,50 @@
 
             let interaccion = false;
 
-            for (let ciudad in sectores) {
+            for (const ciudad in sectores) {
                 if (input.includes(ciudad)) {
                     interaccion = true;
-                    let sec = sectores[ciudad];
+                    const sec = sectores[ciudad];
                     
-                    // Identificación de Facción
-                    let esUSA = input.includes('eeuu') || input.includes('imperio') || input.includes('usa');
-                    let esFANB = input.includes('fanb') || input.includes('ejercito') || input.includes('gobierno') || input.includes('venezuela');
-                    let esLeones = input.includes('irregular') || input.includes('leones') || input.includes('insurgencia');
+                    const esUSA = input.includes('eeuu') || input.includes('imperio') || input.includes('usa');
+                    const esFANB = input.includes('fanb') || input.includes('ejercito') || input.includes('gobierno') || input.includes('venezuela');
+                    const esLeones = input.includes('irregular') || input.includes('leones') || input.includes('insurgencia');
                     
-                    // Identificación de Tecnología y Acciones
-                    let techDron = input.includes('dron') || input.includes('drones');
-                    let techRobot = input.includes('robot') || input.includes('mecha');
-                    let ataque = input.includes('ataque') || input.includes('bombardeo') || input.includes('sabotaje') || input.includes('emboscada');
+                    const techDron = input.includes('dron') || input.includes('drones');
+                    const techRobot = input.includes('robot') || input.includes('mecha');
+                    const ataque = input.includes('ataque') || input.includes('bombardeo') || input.includes('sabotaje') || input.includes('emboscada');
 
-                    let bandoActivo = esUSA ? 'usa' : (esFANB ? 'fanb' : (esLeones ? 'leones' : 'indefinido'));
-                    
-                    // Asignación de icono: Si son leones, forzamos el león a menos que usen drones.
-                    let icono = techDron ? '🚁' : (techRobot ? '🤖' : (bandoActivo === 'leones' ? '🦁' : '🪖'));
-                    
-                    let eta = Math.floor(Math.random() * 15) + 5; 
+                    const bandoActivo = esUSA ? 'usa' : (esFANB ? 'fanb' : (esLeones ? 'leones' : 'indefinido'));
+                    const icono = techDron ? '🚁' : (techRobot ? '🤖' : (bandoActivo === 'leones' ? '🦁' : '🪖'));
+                    const eta = Math.floor(Math.random() * 15) + 5; 
 
-                    // 1. Lógica y Reacciones de EEUU
                     if (bandoActivo === 'usa') {
                         dibujarUnidad(sec.x, sec.y, 'usa', icono);
                         log.innerHTML += `<br><span class='log-usa'>> [🇺🇸 IMPERIO] Fuerzas operativas en ${sec.label}. ETA: ${eta} min.</span>`;
-                        
                         if (ataque) {
-                            sec.hp -= 25; 
-                            sec.moral -= 10; 
+                            sec.hp -= 25; sec.moral -= 10; 
                             log.innerHTML += `<br><span class='log-sys'>> [DAÑO] Bombardeo convencional. HP al ${sec.hp}%. Moral cae a ${sec.moral}%.</span>`;
                             log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 DEFENSA] Baterías antiaéreas activas. Fuerzas regulares aseguran el perímetro.</span>`;
                         }
-
-                    // 2. Lógica y Reacciones de FANB/Gobierno
                     } else if (bandoActivo === 'fanb') {
                         dibujarUnidad(sec.x, sec.y, 'fanb', icono);
-                        log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 GOBIERNO] Despliegue de tropas regulares en ${sec.label}. ETA: ${eta} min.</span>`;
-                        sec.moral += 5; // El control estatal sube ligeramente la estabilidad
+                        log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 GOBIERNO] Despliegue en ${sec.label}. ETA: ${eta} min.</span>`;
+                        sec.moral += 5; 
                         if (ataque) {
-                            log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 OFENSIVA] Operación de barrido y contrainsurgencia iniciada en el sector.</span>`;
+                            log.innerHTML += `<br><span class='log-fanb'>> [🇻🇪 OFENSIVA] Operación de barrido iniciada en el sector.</span>`;
                         }
-
-                    // 3. Lógica y Reacciones de Irregulares (Leones)
                     } else if (bandoActivo === 'leones') {
                         dibujarUnidad(sec.x, sec.y, 'leones', icono);
-                        log.innerHTML += `<br><span class='log-leones'>> [🦁 LEONES] Célula irregular detectada operando en las sombras de ${sec.label}. ETA: Desconocido (Sigilo).</span>`;
-                        
+                        log.innerHTML += `<br><span class='log-leones'>> [🦁 LEONES] Célula irregular en ${sec.label}. ETA: Desconocido.</span>`;
                         if (ataque) {
-                            sec.hp -= 10; // Menos daño físico que un bombardeo
-                            sec.moral -= 30; // Impacto masivo en la moral y control
-                            log.innerHTML += `<br><span class='log-leones'>> [🦁 SABOTAJE] Tácticas asimétricas aplicadas. Infraestructura comprometida al ${sec.hp}%. Pánico civil, moral cae a ${sec.moral}%.</span>`;
-                            log.innerHTML += `<br><span class='log-sys'>> [ALERTA] Fuerzas de seguridad del Estado (🇻🇪) desorientadas por la falta de un frente fijo.</span>`;
+                            sec.hp -= 10; sec.moral -= 30; 
+                            log.innerHTML += `<br><span class='log-leones'>> [🦁 SABOTAJE] Infraestructura comprometida al ${sec.hp}%. Pánico civil, moral cae a ${sec.moral}%.</span>`;
                         }
                     }
                     
-                    // Cambio de Control Territorial (Captura)
                     if (sec.hp <= 0 || sec.moral <= 0) {
-                        sec.hp = sec.hp <= 0 ? 0 : sec.hp;
-                        sec.moral = sec.moral <= 0 ? 0 : sec.moral;
+                        sec.hp = Math.max(0, sec.hp);
+                        sec.moral = Math.max(0, sec.moral);
                         
                         if (bandoActivo === 'usa') sec.bando = "🇺🇸";
                         else if (bandoActivo === 'leones') sec.bando = "🦁";
@@ -241,13 +292,14 @@
                 }
             }
 
-            if (!interaccion) log.innerHTML += "<br><span class='log-sys'>> Sin órdenes procesables. Identifique Facción (Ej: Leones, EEUU, FANB), Acción (Ej: Ataque, Despliegue) y Sector.</span>";
+            if (!interaccion) log.innerHTML += "<br><span class='log-sys'>> Sin órdenes procesables. Identifique Facción, Acción y Sector.</span>";
             
             redibujarBase();
             log.scrollTop = log.scrollHeight;
         }
 
-        redibujarBase();
+        // Renderizado inicial al cargar la página
+        window.onload = redibujarBase;
     </script>
 </body>
 </html>
