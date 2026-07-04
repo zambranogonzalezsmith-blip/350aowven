@@ -2,73 +2,71 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tactical Command: VZLA Engine</title>
+    <title>WAR SIMULATOR - VZLA</title>
     <style>
-        body { margin: 0; background: #020617; color: #4ade80; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        #map-canvas { display: block; cursor: crosshair; }
-        #ui-overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; }
-        .info { background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #4ade80; }
+        body { margin: 0; background: #05070a; color: #4ade80; font-family: monospace; overflow: hidden; touch-action: none; }
+        #game-canvas { display: block; }
+        .controls { position: absolute; bottom: 20px; left: 20px; display: flex; gap: 10px; }
+        button { background: #166534; color: #fff; border: 1px solid #4ade80; padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="ui-overlay">
-    <div class="info">COMANDO: Arrastra unidades (🚁, 🤖, 🦁, 🪖) a los puntos de control.</div>
+<div class="controls">
+    <button onclick="entrenar('🚁')">Entrenar Dron</button>
+    <button onclick="entrenar('🦁')">Entrenar León</button>
+    <button onclick="entrenar('🤖')">Entrenar Robot</button>
 </div>
-<canvas id="map-canvas"></canvas>
+
+<canvas id="game-canvas"></canvas>
 
 <script>
-    const canvas = document.getElementById('map-canvas');
+    const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-    let units = [
-        { x: 100, y: 100, type: '🚁', faction: 'usa' },
-        { x: 100, y: 200, type: '🦁', faction: 'leones' },
-        { x: 100, y: 300, type: '🪖', faction: 'fanb' }
-    ];
-
+    let unidades = [{ x: 100, y: 100, type: '🚁', faction: 'player' }];
+    let enemigas = [{ x: 700, y: 500, type: '🪖', faction: 'bot' }];
     let dragUnit = null;
 
-    canvas.addEventListener('pointerdown', (e) => {
-        units.forEach(u => {
-            if (Math.hypot(u.x - e.clientX, u.y - e.clientY) < 30) dragUnit = u;
+    function entrenar(tipo) {
+        unidades.push({ x: 50, y: 50, type: tipo, faction: 'player' });
+    }
+
+    // IA del BOT: Reacciona moviéndose hacia las unidades del jugador
+    setInterval(() => {
+        enemigas.forEach(e => {
+            let target = unidades[0];
+            if(target) {
+                e.x += (target.x - e.x) * 0.01;
+                e.y += (target.y - e.y) * 0.01;
+            }
         });
+        draw();
+    }, 50);
+
+    canvas.addEventListener('pointerdown', e => {
+        unidades.forEach(u => { if(Math.hypot(u.x - e.clientX, u.y - e.clientY) < 30) dragUnit = u; });
     });
 
-    canvas.addEventListener('pointermove', (e) => {
-        if (dragUnit) {
-            dragUnit.x = e.clientX;
-            dragUnit.y = e.clientY;
-            render();
-        }
+    canvas.addEventListener('pointermove', e => {
+        if(dragUnit) { dragUnit.x = e.clientX; dragUnit.y = e.clientY; }
     });
 
     canvas.addEventListener('pointerup', () => dragUnit = null);
 
-    function render() {
+    function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Dibujar mapa base simple
+        // Dibujar Zonas (Caracas, Guri...)
         ctx.strokeStyle = '#1e293b';
-        for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+        ctx.strokeRect(400, 200, 100, 100); // Zona CCS
         
-        // Dibujar unidades
-        units.forEach(u => {
-            ctx.fillStyle = u.faction === 'usa' ? '#3b82f6' : (u.faction === 'fanb' ? '#ef4444' : '#f59e0b');
-            ctx.beginPath();
-            ctx.arc(u.x, u.y, 25, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = 'white';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(u.type, u.x, u.y + 7);
+        [...unidades, ...enemigas].forEach(u => {
+            ctx.fillStyle = u.faction === 'player' ? '#3b82f6' : '#ef4444';
+            ctx.beginPath(); ctx.arc(u.x, u.y, 20, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'white'; ctx.fillText(u.type, u.x-5, u.y+5);
         });
     }
-
-    render();
 </script>
 </body>
 </html>
